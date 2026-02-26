@@ -28,7 +28,6 @@ const Icon = MaterialCommunityIcons.Component;
 const { width } = Dimensions.get('window');
 const ICON_SIZE = 30;
 
-// Define a consistent color palette based on your design
 const COLORS = {
   primary: '#4F46E5', 
   headerBackground: '#264D70', // Deep blue
