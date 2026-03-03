@@ -48,7 +48,13 @@ export default function Index() {
 
   // If student profile incomplete (should be rare now, but keep safety)
   // Best is to redirect to a dedicated finish-profile screen.
-  if (me.role === "student" && (!me.dept || !me.class || !me.rollno)) {
+  if (
+    me.role === "student" &&
+    (!me.studentProfile ||
+      !me.studentProfile.dept ||
+      !me.studentProfile.class ||
+      !me.studentProfile.rollno)
+  ) {
     return <Redirect href="../(auth)/finish-profile" />;
     // If you don't have finish-profile, use:
     // return <Redirect href="/(tabs)/profile" />;

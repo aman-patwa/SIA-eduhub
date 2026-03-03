@@ -44,7 +44,7 @@ export default function LoginScreen() {
 
       await setActiveSSO({ session: createdSessionId });
 
-      router.replace("/(tabs)");
+      router.replace("/");
     } catch (err: any) {
       const msg =
         err?.errors?.[0]?.longMessage ||
@@ -89,7 +89,8 @@ export default function LoginScreen() {
 
       if (res.status === "complete") {
         await setActive({ session: res.createdSessionId });
-        router.replace("/(tabs)");
+
+        router.replace("/");
       } else {
         Alert.alert(
           "Login Needs Extra Step",

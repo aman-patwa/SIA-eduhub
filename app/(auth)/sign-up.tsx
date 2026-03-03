@@ -105,7 +105,7 @@ export default function SignUpScreen() {
           return;
         }
 
-        router.replace("/(tabs)");
+        router.replace("/login");
       } else {
         Alert.alert("Not Completed", `Status: ${res.status}`);
       }
