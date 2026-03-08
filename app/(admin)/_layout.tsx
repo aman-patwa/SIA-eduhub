@@ -1,4 +1,5 @@
 import { api } from "@/convex/_generated/api";
+import { useAuth } from "@clerk/clerk-expo";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "convex/react";
 import { Redirect, Tabs } from "expo-router";
@@ -6,7 +7,22 @@ import React from "react";
 import { ActivityIndicator, View } from "react-native";
 
 export default function AdminLayout() {
-  const me = useQuery(api.users.getMe);
+  const { isLoaded, isSignedIn } = useAuth();
+
+  const me = useQuery(api.users.getMe, isLoaded && isSignedIn ? {} : "skip");
+
+  if (!isLoaded) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator />
+      </View>
+    );
+  }
+
+  // ✅ signed out -> go straight to login
+  if (!isSignedIn) {
+    return <Redirect href="/(auth)/login" />;
+  }
 
   if (me === undefined) {
     return (
@@ -16,7 +32,7 @@ export default function AdminLayout() {
     );
   }
 
-  // ✅ allow admin + teacher
+  // ✅ allow only admin + teacher
   if (!me || (me.role !== "admin" && me.role !== "teacher")) {
     return <Redirect href="/(tabs)" />;
   }
@@ -54,9 +70,11 @@ export default function AdminLayout() {
           ),
         }}
       />
+
       <Tabs.Screen
         name="notices"
         options={{
+          title: "Notices",
           tabBarIcon: ({ size, color }) => (
             <Ionicons name="notifications" size={size} color={color} />
           ),
@@ -66,6 +84,7 @@ export default function AdminLayout() {
       <Tabs.Screen
         name="attendance"
         options={{
+          title: "Attendance",
           tabBarIcon: ({ size, color }) => (
             <Ionicons name="calendar" size={size} color={color} />
           ),
@@ -82,11 +101,10 @@ export default function AdminLayout() {
         }}
       />
 
-      {/* ✅ keep route, but hide from tab bar */}
       <Tabs.Screen
         name="add-teacher"
         options={{
-          href: null, // 👈 hides it from tab bar
+          href: null,
           title: "Add Teacher",
         }}
       />

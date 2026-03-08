@@ -2,8 +2,9 @@ import { AppInput, Card, Label, PrimaryButton } from "@/components/ui";
 import { api } from "@/convex/_generated/api";
 import { COLORS } from "@/styles/theme";
 import { useAuth, useUser } from "@clerk/clerk-expo";
+import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery } from "convex/react";
-import { Redirect } from "expo-router";
+import { Redirect, router } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -20,11 +21,9 @@ import {
 export default function AdminProfileScreen() {
   const me = useQuery(api.users.getMe);
   const updateMyProfile = useMutation(api.users.updateMyProfile);
-
   const { signOut } = useAuth();
   const { user, isLoaded } = useUser();
 
-  // loading user data
   if (me === undefined) {
     return (
       <View style={styles.center}>
@@ -33,10 +32,8 @@ export default function AdminProfileScreen() {
     );
   }
 
-  // not logged in
   if (!me) return <Redirect href="/(auth)/login" />;
 
-  // only teacher/admin
   if (me.role !== "admin" && me.role !== "teacher") {
     return <Redirect href="/(tabs)" />;
   }
@@ -46,10 +43,12 @@ export default function AdminProfileScreen() {
 
   const [saving, setSaving] = useState(false);
 
-  // password change
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [changingPw, setChangingPw] = useState(false);
+
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
 
   useEffect(() => {
     setFullname(me.fullname ?? "");
@@ -104,6 +103,9 @@ export default function AdminProfileScreen() {
 
       setCurrentPassword("");
       setNewPassword("");
+      setShowCurrentPassword(false);
+      setShowNewPassword(false);
+
       Alert.alert("Done ✅", "Password updated");
     } catch (e: any) {
       Alert.alert(
@@ -118,8 +120,9 @@ export default function AdminProfileScreen() {
   const onSignOut = async () => {
     try {
       await signOut();
+      router.replace("/(auth)/login");
     } catch {
-      // ignore
+      Alert.alert("Error", "Could not sign out");
     }
   };
 
@@ -172,20 +175,46 @@ export default function AdminProfileScreen() {
           <Text style={styles.sectionTitle}>Change Password</Text>
 
           <Label>Current Password</Label>
-          <AppInput
-            value={currentPassword}
-            onChangeText={setCurrentPassword}
-            placeholder="Current password"
-            secureTextEntry
-          />
+          <View style={styles.passwordWrap}>
+            <AppInput
+              value={currentPassword}
+              onChangeText={setCurrentPassword}
+              placeholder="Current password"
+              secureTextEntry={!showCurrentPassword}
+              style={styles.passwordInput}
+            />
+            <Pressable
+              onPress={() => setShowCurrentPassword((prev) => !prev)}
+              style={styles.eyeIcon}
+            >
+              <Ionicons
+                name={showCurrentPassword ? "eye-off" : "eye"}
+                size={20}
+                color="#475569"
+              />
+            </Pressable>
+          </View>
 
           <Label>New Password</Label>
-          <AppInput
-            value={newPassword}
-            onChangeText={setNewPassword}
-            placeholder="New password"
-            secureTextEntry
-          />
+          <View style={styles.passwordWrap}>
+            <AppInput
+              value={newPassword}
+              onChangeText={setNewPassword}
+              placeholder="New password"
+              secureTextEntry={!showNewPassword}
+              style={styles.passwordInput}
+            />
+            <Pressable
+              onPress={() => setShowNewPassword((prev) => !prev)}
+              style={styles.eyeIcon}
+            >
+              <Ionicons
+                name={showNewPassword ? "eye-off" : "eye"}
+                size={20}
+                color="#475569"
+              />
+            </Pressable>
+          </View>
 
           <PrimaryButton
             title={changingPw ? "Updating..." : "Update Password"}
@@ -194,8 +223,8 @@ export default function AdminProfileScreen() {
           />
 
           <Text style={styles.helper}>
-            If password change fails due to Clerk settings, we’ll add a “Reset
-            password” flow.
+            If password change fails due to Clerk settings, we’ll add a reset
+            password flow.
           </Text>
         </Card>
 
@@ -218,7 +247,7 @@ export default function AdminProfileScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLORS.bg },
   scroll: { flex: 1 },
-  content: { padding: 16, paddingBottom: 40 }, // ✅ important for scrolling
+  content: { padding: 16, paddingBottom: 40 },
 
   header: {
     fontSize: 22,
@@ -237,7 +266,27 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     color: "#0f172a",
   },
-  helper: { marginTop: 8, fontSize: 12, opacity: 0.7, color: "#0f172a" },
+  helper: {
+    marginTop: 8,
+    fontSize: 12,
+    opacity: 0.7,
+    color: "#0f172a",
+  },
+
+  passwordWrap: {
+    position: "relative",
+    justifyContent: "center",
+  },
+  passwordInput: {
+    paddingRight: 42,
+  },
+  eyeIcon: {
+    position: "absolute",
+    right: 12,
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+  },
 
   signOutBtn: {
     paddingVertical: 12,

@@ -173,7 +173,7 @@ export const completeStudentProfile = mutation({
   },
 });
 
-// ✅ NEW: Update profile (admin/teacher/student — whoever is logged in)
+// Update profile admin/teacher
 export const updateMyProfile = mutation({
   args: {
     fullname: v.optional(v.string()),
@@ -199,7 +199,6 @@ export const updateMyProfile = mutation({
       ...(args.phone !== undefined ? { phone: phone || undefined } : {}),
     });
 
-    // ✅ keep teacherProfiles.phone synced (optional but clean)
     if (me.role === "teacher") {
       const tp = await ctx.db
         .query("teacherProfiles")
@@ -210,5 +209,48 @@ export const updateMyProfile = mutation({
         await ctx.db.patch(tp._id, { phone: phone || undefined });
       }
     }
+  },
+});
+
+export const updateStudentProfile = mutation({
+  args: {
+    phone: v.optional(v.string()),
+    parentName: v.optional(v.string()),
+    parentPhone: v.optional(v.string()),
+    address: v.optional(v.string()),
+    dob: v.optional(v.string()),
+    documents: v.optional(v.array(v.string())),
+  },
+  handler: async (ctx, args) => {
+    const identity = await requireIdentity(ctx);
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .first();
+
+    if (!user) throw new Error("User not found");
+    if (user.role !== "student")
+      throw new Error("Only students can update this");
+
+    // update common phone in users table
+    await ctx.db.patch(user._id, {
+      phone: args.phone?.trim() || undefined,
+    });
+
+    const profile = await ctx.db
+      .query("studentProfiles")
+      .withIndex("by_userId", (q) => q.eq("userId", user._id))
+      .first();
+
+    if (!profile) throw new Error("Student profile not found");
+
+    await ctx.db.patch(profile._id, {
+      parentName: args.parentName?.trim() || undefined,
+      parentPhone: args.parentPhone?.trim() || undefined,
+      address: args.address?.trim() || undefined,
+      dob: args.dob?.trim() || undefined,
+      documents: args.documents ?? [],
+    });
   },
 });

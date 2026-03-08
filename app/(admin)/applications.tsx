@@ -1,6 +1,7 @@
 import { AppInput, Card, Label, PrimaryButton, Screen } from "@/components/ui";
 import { api } from "@/convex/_generated/api";
 import { COLORS } from "@/styles/theme";
+import { useAuth } from "@clerk/clerk-expo";
 import { useMutation, useQuery } from "convex/react";
 import React, { useMemo, useState } from "react";
 import {
@@ -22,11 +23,24 @@ export default function AdminApplications() {
   const [className, setClassName] = useState<string | undefined>(undefined);
   const [status, setStatus] = useState<string | undefined>("pending");
 
-  const apps = useQuery(api.admin.listApplications, {
-    dept,
-    class: className,
-    status,
-  });
+  const { isLoaded, isSignedIn } = useAuth();
+
+  const me = useQuery(api.users.getMe, isLoaded && isSignedIn ? {} : "skip");
+
+  const apps = useQuery(
+    api.admin.listApplications,
+    isLoaded &&
+      isSignedIn &&
+      me !== undefined &&
+      !!me &&
+      (me.role === "admin" || me.role === "teacher")
+      ? {
+          dept,
+          class: className,
+          status,
+        }
+      : "skip",
+  );
 
   const updateStatus = useMutation(api.admin.updateApplicationStatus);
   const deleteApp = useMutation(api.admin.deleteApplication);
@@ -96,6 +110,19 @@ export default function AdminApplications() {
       ],
     );
   };
+
+  // ✅ loader while auth / me is initializing
+  if (!isLoaded || me === undefined) {
+    return (
+      <Screen scroll contentStyle={{ padding: 16, paddingBottom: 40 }}>
+        <Card>
+          <View style={{ paddingVertical: 20 }}>
+            <ActivityIndicator />
+          </View>
+        </Card>
+      </Screen>
+    );
+  }
 
   return (
     <Screen scroll contentStyle={{ padding: 16, paddingBottom: 40 }}>
@@ -206,8 +233,6 @@ export default function AdminApplications() {
                 onPress={() => doUpdate("rejected")}
                 disabled={saving}
               />
-
-              {/* ✅ DELETE */}
 
               <TouchableOpacity
                 activeOpacity={0.85}

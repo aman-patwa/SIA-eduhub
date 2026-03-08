@@ -1,6 +1,7 @@
 import { Card, Screen } from "@/components/ui";
 import { api } from "@/convex/_generated/api";
 import { COLORS } from "@/styles/theme";
+import { useAuth } from "@clerk/clerk-expo";
 import { useQuery } from "convex/react";
 import { useRouter } from "expo-router";
 import React from "react";
@@ -14,9 +15,27 @@ import {
 
 export default function AdminDashboard() {
   const router = useRouter();
+  const { isLoaded, isSignedIn } = useAuth();
 
-  const me = useQuery(api.users.getMe);
-  const apps = useQuery(api.admin.listApplications, { status: "pending" });
+  const me = useQuery(api.users.getMe, isLoaded && isSignedIn ? {} : "skip");
+
+  const apps = useQuery(
+    api.admin.listApplications,
+    isLoaded && isSignedIn ? { status: "pending" } : "skip",
+  );
+
+  // Loader while auth initializing
+  if (!isLoaded) {
+    return (
+      <Screen>
+        <View
+          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+        >
+          <ActivityIndicator />
+        </View>
+      </Screen>
+    );
+  }
 
   return (
     <Screen>

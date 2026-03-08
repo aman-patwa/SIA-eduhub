@@ -1,4 +1,5 @@
 import { useSSO, useSignIn } from "@clerk/clerk-expo";
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
@@ -20,12 +21,12 @@ export default function LoginScreen() {
   const { signIn, setActive, isLoaded } = useSignIn();
   const { startSSOFlow } = useSSO();
 
-  const [step, setStep] = useState<1 | 2>(1);
-  const [identifier, setIdentifier] = useState(""); // email or username
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
 
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const onGooglePress = useCallback(async () => {
     if (!isLoaded) return;
@@ -43,7 +44,6 @@ export default function LoginScreen() {
       }
 
       await setActiveSSO({ session: createdSessionId });
-
       router.replace("/");
     } catch (err: any) {
       const msg =
@@ -55,15 +55,6 @@ export default function LoginScreen() {
       setGoogleLoading(false);
     }
   }, [isLoaded, startSSOFlow, router]);
-
-  const onContinue = () => {
-    const id = identifier.trim();
-    if (!id) {
-      Alert.alert("Missing Details", "Please enter email or username.");
-      return;
-    }
-    setStep(2);
-  };
 
   const onSignIn = useCallback(async () => {
     if (!isLoaded) return;
@@ -89,7 +80,6 @@ export default function LoginScreen() {
 
       if (res.status === "complete") {
         await setActive({ session: res.createdSessionId });
-
         router.replace("/");
       } else {
         Alert.alert(
@@ -110,15 +100,16 @@ export default function LoginScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1 }}
+      style={styles.flex}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 20 : 0}
     >
       <ScrollView
         contentContainerStyle={styles.container}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
+        showsVerticalScrollIndicator={false}
       >
-        {/* Logo */}
         <Image
           source={require("../../assets/images/sia_clg_logo.png")}
           style={styles.logo}
@@ -134,15 +125,13 @@ export default function LoginScreen() {
           </Text>
         </View>
 
-        {/* Card */}
         <View style={styles.card}>
           <Text style={styles.title}>Sign in to SIAeduHub</Text>
           <Text style={styles.subtitle}>
             Welcome back! Please sign in to continue
           </Text>
 
-          {/* Google Button */}
-          {/*  
+          {/*
           <TouchableOpacity
             style={[styles.googleBtn, googleLoading && { opacity: 0.7 }]}
             onPress={onGooglePress}
@@ -157,16 +146,6 @@ export default function LoginScreen() {
           </TouchableOpacity>
           */}
 
-          {/* Divider */}
-          {/* 
-          <View style={styles.dividerRow}>
-            <View style={styles.line} />
-            <Text style={styles.orText}>or</Text>
-            <View style={styles.line} />
-          </View>
-          */}
-
-          {/* Identifier */}
           <Text style={styles.label}>Email address or username</Text>
           <TextInput
             style={styles.input}
@@ -175,52 +154,52 @@ export default function LoginScreen() {
             autoCapitalize="none"
             value={identifier}
             onChangeText={setIdentifier}
-            keyboardType="email-address"
+            keyboardType="default"
+            returnKeyType="next"
           />
 
-          {/* Step 2: Password */}
-          {step === 2 && (
-            <>
-              <Text style={[styles.label, { marginTop: 10 }]}>Password</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter password"
-                placeholderTextColor="#6B7280"
-                secureTextEntry
-                value={password}
-                onChangeText={setPassword}
+          <Text style={[styles.label, { marginTop: 10 }]}>Password</Text>
+          <View style={styles.passwordWrap}>
+            <TextInput
+              style={styles.passwordInput}
+              placeholder="Enter password"
+              placeholderTextColor="#6B7280"
+              secureTextEntry={!showPassword}
+              value={password}
+              onChangeText={setPassword}
+              autoCapitalize="none"
+              returnKeyType="done"
+              onSubmitEditing={onSignIn}
+            />
+            <TouchableOpacity
+              onPress={() => setShowPassword((prev) => !prev)}
+              style={styles.eyeIcon}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name={showPassword ? "eye-off" : "eye"}
+                size={20}
+                color="#475569"
               />
-            </>
-          )}
-
-          {/* Continue / Sign in Button */}
-          {step === 1 ? (
-            <TouchableOpacity
-              style={styles.primaryBtn}
-              onPress={onContinue}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.primaryText}>Continue ➜</Text>
             </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              style={[
-                styles.primaryBtn,
-                (loading || !isLoaded) && { opacity: 0.7 },
-              ]}
-              onPress={onSignIn}
-              disabled={loading || !isLoaded}
-              activeOpacity={0.85}
-            >
-              {loading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.primaryText}>Sign in ➜</Text>
-              )}
-            </TouchableOpacity>
-          )}
+          </View>
 
-          {/* Footer */}
+          <TouchableOpacity
+            style={[
+              styles.primaryBtn,
+              (loading || !isLoaded) && { opacity: 0.7 },
+            ]}
+            onPress={onSignIn}
+            disabled={loading || !isLoaded}
+            activeOpacity={0.85}
+          >
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.primaryText}>Sign in ➜</Text>
+            )}
+          </TouchableOpacity>
+
           <View style={styles.footerRow}>
             <Text style={styles.footerText}>Don’t have an account?</Text>
             <Text
@@ -230,13 +209,6 @@ export default function LoginScreen() {
               Sign up
             </Text>
           </View>
-
-          {/* Back to Step 1 */}
-          {step === 2 && (
-            <Text style={styles.backLink} onPress={() => setStep(1)}>
-              ← Change email/username
-            </Text>
-          )}
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -244,12 +216,17 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
+  flex: {
+    flex: 1,
+  },
   container: {
     flexGrow: 1,
     backgroundColor: "#E6F0FF",
     alignItems: "center",
     padding: 20,
     paddingTop: 30,
+    paddingBottom: 40,
+    justifyContent: "center",
   },
   logo: {
     width: 110,
@@ -300,23 +277,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
 
-  dividerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 14,
-    gap: 10,
-  },
-  line: {
-    flex: 1,
-    height: 1,
-    backgroundColor: "rgba(0,43,91,0.25)",
-  },
-  orText: {
-    color: "#002B5B",
-    fontWeight: "700",
-    opacity: 0.7,
-  },
-
   label: {
     color: "#002B5B",
     fontWeight: "800",
@@ -332,6 +292,29 @@ const styles = StyleSheet.create({
     fontSize: 14,
     borderWidth: 1,
     borderColor: "rgba(0,0,0,0.08)",
+  },
+
+  passwordWrap: {
+    position: "relative",
+    justifyContent: "center",
+  },
+  passwordInput: {
+    width: "100%",
+    backgroundColor: "#E8ECF1",
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    paddingRight: 42,
+    fontSize: 14,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.08)",
+  },
+  eyeIcon: {
+    position: "absolute",
+    right: 12,
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
   },
 
   primaryBtn: {
@@ -363,13 +346,6 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     fontSize: 13,
     textDecorationLine: "underline",
-  },
-  backLink: {
-    marginTop: 10,
-    textAlign: "center",
-    color: "#002B5B",
-    fontWeight: "700",
-    opacity: 0.8,
   },
 
   infoBox: {
