@@ -1,50 +1,467 @@
-# Welcome to your Expo app 👋
+# SIA EduHub – College ERP Mobile Application
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+SIA EduHub is a **College ERP Mobile Application** built using **React Native, Expo, Convex, and Clerk**.
+The application manages academic operations such as attendance, exams, notices, applications, and teacher management.
 
-## Get started
+This project uses **Expo Router for navigation**, **Convex as the backend**, and **Clerk for authentication**.
 
-1. Install dependencies
+---
 
-   ```bash
-   npm install
-   ```
+# Features
 
-2. Start the app
+### Admin
 
-   ```bash
-   npx expo start
-   ```
+- Manage teachers
+- Create exam schedules
+- Manage attendance
+- Manage notices
+- Review student applications
+- View dashboard analytics
 
-In the output, you'll find options to open the app in a
+### Teacher
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+- Mark attendance
+- Manage exam schedules for assigned subjects
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+### Student
 
-## Get a fresh project
+- View attendance
+- View exams
+- View notices
+- Submit applications
 
-When you're ready, run:
+---
 
-```bash
+# Tech Stack
+
+Frontend
+
+- React Native
+- Expo
+- Expo Router
+- TypeScript
+
+Backend
+
+- Convex
+
+Authentication
+
+- Clerk
+
+Navigation
+
+- React Navigation
+- Expo Router
+
+---
+
+# Project Structure
+
+```
+app/
+│
+├── (auth)
+│   ├── login.tsx
+│   └── register.tsx
+│
+├── (admin)
+│   ├── _layout.tsx
+│   ├── index.tsx
+│   ├── attendance.tsx
+│   ├── applications.tsx
+│   ├── notices.tsx
+│   ├── profile.tsx
+│   ├── add-teacher.tsx
+│   └── exams.tsx
+│
+├── (tabs)
+│   ├── _layout.tsx
+│   ├── index.tsx
+│   ├── attendance.tsx
+│   ├── exams.tsx
+│   ├── notices.tsx
+│   └── profile.tsx
+│
+lib/
+│   academicData.ts
+│
+components/
+│   ui/
+│      Card.tsx
+│      Screen.tsx
+│      PrimaryButton.tsx
+│      AppInput.tsx
+│      Label.tsx
+│
+convex/
+│   users.ts
+│   attendance.ts
+│   exams.ts
+│   adminTeachers.ts
+│   notices.ts
+│   applications.ts
+```
+
+---
+
+# Academic Data System
+
+Academic configuration is stored in:
+
+```
+lib/academicData.ts
+```
+
+Structure includes:
+
+- Departments
+- Classes per department
+- Subjects per department and class
+
+Example:
+
+```
+B.Sc IT
+ ├ FY
+ │  └ Programming in C
+ ├ SY
+ │  └ Operating Systems
+ └ TY
+    └ Computer Networks
+```
+
+Teachers are assigned **department-wise**, not class-wise.
+
+Teacher profile example:
+
+```
+teacherProfile {
+  depts: string[]
+  subjects: string[]
+}
+```
+
+---
+
+# Prerequisites
+
+Install the following software before running the project.
+
+### Node.js
+
+Install Node.js (Recommended version)
+
+```
+Node.js >= 18
+```
+
+Download from:
+
+[https://nodejs.org](https://nodejs.org)
+
+Verify installation:
+
+```
+node -v
+npm -v
+```
+
+---
+
+### Git
+
+Install Git
+
+[https://git-scm.com/](https://git-scm.com/)
+
+Verify:
+
+```
+git --version
+```
+
+---
+
+### Expo CLI
+
+Install Expo CLI globally
+
+```
+npm install -g expo
+```
+
+Verify installation
+
+```
+expo --version
+```
+
+---
+
+# Clone the Repository
+
+```
+git clone https://github.com/YOUR_USERNAME/siaeduhub.git
+cd siaeduhub
+```
+
+---
+
+# Install Dependencies
+
+Install all project dependencies:
+
+```
+npm install
+```
+
+or
+
+```
+npm install --legacy-peer-deps
+```
+
+---
+
+# Install Required Native Libraries
+
+Some libraries require explicit installation.
+
+### Date & Time Picker
+
+```
+npx expo install @react-native-community/datetimepicker
+```
+
+Used for:
+
+- exam date
+- start time
+- end time
+
+---
+
+### Picker Component
+
+```
+npx expo install @react-native-picker/picker
+```
+
+Used for dropdown selections.
+
+---
+
+### React Navigation
+
+Already included in dependencies but ensure installation:
+
+```
+npx expo install @react-navigation/native
+npx expo install react-native-screens
+npx expo install react-native-safe-area-context
+```
+
+---
+
+### Gesture Handler
+
+```
+npx expo install react-native-gesture-handler
+```
+
+---
+
+### Reanimated
+
+```
+npx expo install react-native-reanimated
+```
+
+---
+
+# Setup Convex Backend
+
+Install Convex CLI
+
+```
+npm install -g convex
+```
+
+Login to Convex
+
+```
+npx convex login
+```
+
+Initialize Convex project
+
+```
+npx convex dev
+```
+
+This will create your Convex deployment.
+
+---
+
+# Setup Clerk Authentication
+
+Create a Clerk account:
+
+[https://clerk.com](https://clerk.com)
+
+Create a new application.
+
+Copy your **publishable key**.
+
+---
+
+# Environment Variables
+
+Create a `.env` file in the root directory.
+
+Example:
+
+```
+EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
+EXPO_PUBLIC_CONVEX_URL=your_convex_deployment_url
+```
+
+---
+
+# Run the Project
+
+Start development server:
+
+```
+npm run start
+```
+
+---
+
+### Run on Android
+
+```
+npm run android
+```
+
+Requires Android emulator or Android device.
+
+---
+
+### Run on iOS
+
+```
+npm run ios
+```
+
+Requires macOS.
+
+---
+
+### Run on Web
+
+```
+npm run web
+```
+
+---
+
+# Lint the Project
+
+```
+npm run lint
+```
+
+---
+
+# Reset Project
+
+```
 npm run reset-project
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+This clears cached project state.
 
-## Learn more
+---
 
-To learn more about developing your project with Expo, look at the following resources:
+# Installed Dependencies
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+Key dependencies used in this project:
 
-## Join the community
+```
+@clerk/clerk-expo
+convex
+expo-router
+@react-native-community/datetimepicker
+@react-native-picker/picker
+expo-notifications
+expo-secure-store
+react-native-reanimated
+react-native-gesture-handler
+@expo/vector-icons
+```
 
-Join our community of developers creating universal apps.
+---
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+# Common Issues and Fixes
+
+### Metro Bundler Error
+
+Clear cache:
+
+```
+npx expo start -c
+```
+
+---
+
+### Node Modules Issues
+
+Remove node modules and reinstall:
+
+```
+rm -rf node_modules
+npm install
+```
+
+---
+
+### Reanimated Error
+
+Ensure babel plugin exists in `babel.config.js`:
+
+```
+plugins: ["react-native-reanimated/plugin"]
+```
+
+---
+
+# Contribution
+
+1. Fork the repository
+2. Create a feature branch
+
+```
+git checkout -b feature/new-feature
+```
+
+3. Commit changes
+
+```
+git commit -m "Add new feature"
+```
+
+4. Push changes
+
+```
+git push origin feature/new-feature
+```
+
+5. Open a Pull Request
+
+---
+
+# License
+
+This project is open-source and available under the MIT License.
