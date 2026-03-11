@@ -19,7 +19,6 @@ export default function AdminLayout() {
     );
   }
 
-  // ✅ signed out -> go straight to login
   if (!isSignedIn) {
     return <Redirect href="/(auth)/login" />;
   }
@@ -32,7 +31,6 @@ export default function AdminLayout() {
     );
   }
 
-  // ✅ allow only admin + teacher
   if (!me || (me.role !== "admin" && me.role !== "teacher")) {
     return <Redirect href="/(tabs)" />;
   }
@@ -105,7 +103,13 @@ export default function AdminLayout() {
         name="add-teacher"
         options={{
           href: null,
-          title: "Add Teacher",
+        }}
+      />
+
+      <Tabs.Screen
+        name="exam"
+        options={{
+          href: null,
         }}
       />
     </Tabs>

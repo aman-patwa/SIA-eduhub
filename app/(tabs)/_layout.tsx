@@ -6,8 +6,8 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
+        headerShown: false,
         tabBarShowLabel: false,
-        // to edit the style of the tab bar
         tabBarStyle: {
           backgroundColor: "#fff",
           borderTopWidth: 0,
@@ -57,6 +57,12 @@ export default function TabLayout() {
           tabBarIcon: ({ size, color }) => (
             <Ionicons name="person" size={size} color={color} />
           ),
+        }}
+      />
+      <Tabs.Screen
+        name="attendance"
+        options={{
+          href: null,
         }}
       />
     </Tabs>

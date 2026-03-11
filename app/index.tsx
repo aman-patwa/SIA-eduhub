@@ -1,21 +1,36 @@
 // app/index.tsx
 import { api } from "@/convex/_generated/api";
+import { registerForPushNotificationsAsync } from "@/lib/registerForPushNotifications";
 import { useAuth } from "@clerk/clerk-expo";
-import { useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { Redirect } from "expo-router";
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 
 export default function Index() {
   const { isLoaded, isSignedIn } = useAuth();
 
-  // This returns:
-  // - undefined while loading
-  // - null if not found (you can design getMe to return null)
-  // - user object when found
-  const me = useQuery(api.users.getMe);
+  const me = useQuery(api.users.getMe, isLoaded && isSignedIn ? {} : "skip");
 
-  // Clerk still loading
+  const upsertMyPushToken = useMutation(api.pushTokens.upsertMyPushToken);
+  const registeredRef = useRef(false);
+
+  useEffect(() => {
+    const run = async () => {
+      if (!isLoaded || !isSignedIn || !me || registeredRef.current) return;
+
+      try {
+        const result = await registerForPushNotificationsAsync();
+        await upsertMyPushToken(result);
+        registeredRef.current = true;
+      } catch (e) {
+        console.log("Push registration skipped:", e);
+      }
+    };
+
+    run();
+  }, [isLoaded, isSignedIn, me, upsertMyPushToken]);
+
   if (!isLoaded) {
     return (
       <View style={styles.loader}>
@@ -24,10 +39,8 @@ export default function Index() {
     );
   }
 
-  // Not signed in -> login
   if (!isSignedIn) return <Redirect href="/(auth)/login" />;
 
-  // Convex still fetching
   if (me === undefined) {
     return (
       <View style={styles.loader}>
@@ -36,8 +49,6 @@ export default function Index() {
     );
   }
 
-  // Webhook delay: signed in but user not yet created in Convex
-  // (wait instead of redirecting somewhere wrong)
   if (me === null) {
     return (
       <View style={styles.loader}>
@@ -46,8 +57,6 @@ export default function Index() {
     );
   }
 
-  // If student profile incomplete (should be rare now, but keep safety)
-  // Best is to redirect to a dedicated finish-profile screen.
   if (
     me.role === "student" &&
     (!me.studentProfile ||
@@ -56,16 +65,12 @@ export default function Index() {
       !me.studentProfile.rollno)
   ) {
     return <Redirect href="../(auth)/finish-profile" />;
-    // If you don't have finish-profile, use:
-    // return <Redirect href="/(tabs)/profile" />;
   }
 
-  // Teacher/Admin
   if (me.role === "teacher" || me.role === "admin") {
     return <Redirect href="/(admin)" />;
   }
 
-  // Student
   return <Redirect href="/(tabs)" />;
 }
 

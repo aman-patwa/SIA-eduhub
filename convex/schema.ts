@@ -81,4 +81,54 @@ export default defineSchema({
     adminNote: v.optional(v.string()),
     createdAt: v.number(),
   }).index("by_userId", ["userId"]),
+
+  pushTokens: defineTable({
+    userId: v.id("users"),
+    token: v.string(),
+    platform: v.union(v.literal("android"), v.literal("ios")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_token", ["token"]),
+  attendanceSessions: defineTable({
+    teacherUserId: v.id("users"),
+    dept: v.string(),
+    class: v.string(),
+    subject: v.string(),
+    sessionDate: v.string(), // YYYY-MM-DD
+    createdAt: v.number(),
+  })
+    .index("by_teacher_date", ["teacherUserId", "sessionDate"])
+    .index("by_dept_class_subject_date", [
+      "dept",
+      "class",
+      "subject",
+      "sessionDate",
+    ])
+    .index("by_dept_class_date", ["dept", "class", "sessionDate"]),
+
+  attendanceRecords: defineTable({
+    sessionId: v.id("attendanceSessions"),
+    studentUserId: v.id("users"),
+    status: v.union(v.literal("present"), v.literal("absent")),
+    markedAt: v.number(),
+  })
+    .index("by_sessionId", ["sessionId"])
+    .index("by_studentUserId", ["studentUserId"])
+    .index("by_session_student", ["sessionId", "studentUserId"]),
+
+  exams: defineTable({
+    dept: v.string(),
+    class: v.string(),
+    subject: v.string(),
+    examDate: v.string(), // YYYY-MM-DD
+    startTime: v.string(), // HH:mm
+    endTime: v.string(), // HH:mm
+    room: v.optional(v.string()),
+    createdByUserId: v.id("users"),
+    createdAt: v.number(),
+  })
+    .index("by_dept_class_examDate", ["dept", "class", "examDate"])
+    .index("by_creator", ["createdByUserId"]),
 });

@@ -1,14 +1,20 @@
 import ClerkAndConvexProvider from "@/provider/ClerkAndConvexProvider";
-import { ClerkProvider } from "@clerk/clerk-expo";
+import * as Notifications from "expo-notifications";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React from "react";
 import "react-native-reanimated";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
-<ClerkProvider publishableKey="pk_test_c21pbGluZy1yYXktOTUuY2xlcmsuYWNjb3VudHMuZGV2JA">
-  <Stack />
-</ClerkProvider>;
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
+  }),
+});
 
 export default function RootLayout() {
   return (

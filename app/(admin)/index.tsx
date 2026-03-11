@@ -40,7 +40,9 @@ export default function AdminDashboard() {
   return (
     <Screen>
       <Card>
-        <Text style={styles.title}>Admin Panel</Text>
+        <Text style={styles.title}>
+          {me?.role === "admin" ? "Admin Panel" : "Teacher Panel"}
+        </Text>
         <Text style={styles.sub}>
           Manage applications, notices & attendance
         </Text>
@@ -69,6 +71,15 @@ export default function AdminDashboard() {
             <Text style={styles.primaryBtnText}>+ Add Teacher</Text>
           </Pressable>
         )}
+        <Pressable
+          onPress={() => router.push("/(admin)/exam")}
+          style={({ pressed }) => [
+            styles.primaryBtn,
+            pressed && { opacity: 0.85 },
+          ]}
+        >
+          <Text style={styles.primaryBtnText}>Manage Exams</Text>
+        </Pressable>
       </Card>
     </Screen>
   );

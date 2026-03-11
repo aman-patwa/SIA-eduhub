@@ -249,12 +249,12 @@ export default function ProfileScreen() {
           />
         )}
 
-        <Label>Documents</Label>
+        {/* <Label>Documents</Label>
         <AppInput
           value={documents}
           onChangeText={setDocuments}
           placeholder="Enter document URLs or names separated by comma"
-        />
+        /> */}
 
         <PrimaryButton
           title={saving ? "Saving..." : "Save Changes"}

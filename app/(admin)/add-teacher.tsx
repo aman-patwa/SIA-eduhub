@@ -1,7 +1,8 @@
 import { AppInput, Card, Label, PrimaryButton } from "@/components/ui";
 import { api } from "@/convex/_generated/api";
+import { DEPARTMENTS, SUBJECTS_BY_DEPT_AND_CLASS } from "@/lib/academicData";
 import { COLORS } from "@/styles/theme";
-import { useAuth } from "@clerk/clerk-expo"; // ✅ ADD
+import { useAuth } from "@clerk/clerk-expo";
 import { useMutation, useQuery } from "convex/react";
 import { Redirect, useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
@@ -17,62 +18,117 @@ import {
   View,
 } from "react-native";
 
-const DEPT_OPTIONS = ["B.Sc. IT", "B.M.S", "B.A.F", "B.B.I", "B.A.M.M.C"];
-const SUBJECT_OPTIONS = [
-  "DBMS",
-  "OS",
-  "Java",
-  "Python",
-  "Web Tech",
-  "CN",
-  "AI",
-  "DSA",
-];
+type DeptSubjectMap = Record<string, string[]>;
 
 export default function AddTeacherScreen() {
   const router = useRouter();
-
-  const { getToken } = useAuth(); // ✅ ADD
+  const { getToken } = useAuth();
 
   const completeTeacher = useMutation(
     api.adminTeachers.adminCompleteTeacherProfile,
   );
   const me = useQuery(api.users.getMe);
 
-  if (!me) return null;
-  if (me.role !== "admin") return <Redirect href="/(admin)" />;
-
   const [fullname, setFullname] = useState("");
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
 
-  const [depts, setDepts] = useState<string[]>([]);
-  const [subjects, setSubjects] = useState<string[]>([]);
+  const [selectedDept, setSelectedDept] = useState("");
+  const [deptSubjectMap, setDeptSubjectMap] = useState<DeptSubjectMap>({});
 
   const [creating, setCreating] = useState(false);
   const [createdClerkId, setCreatedClerkId] = useState<string | null>(null);
 
   const TEMP_PASSWORD = "Teacher@1234";
 
+  if (me === undefined) {
+    return (
+      <View style={styles.loader}>
+        <ActivityIndicator />
+      </View>
+    );
+  }
+
+  if (!me) return null;
+  if (me.role !== "admin") return <Redirect href="/(admin)" />;
+
+  const subjectOptions = useMemo(() => {
+    if (!selectedDept) return [];
+
+    const deptClassMap = SUBJECTS_BY_DEPT_AND_CLASS[selectedDept] ?? {};
+    const allSubjects = Object.values(deptClassMap).flat();
+
+    return Array.from(new Set(allSubjects));
+  }, [selectedDept]);
+
+  const selectedSubjectsForCurrentDept = deptSubjectMap[selectedDept] ?? [];
+
+  const allSelectedForCurrentDept =
+    subjectOptions.length > 0 &&
+    subjectOptions.every((subject) =>
+      selectedSubjectsForCurrentDept.includes(subject),
+    );
+
+  const finalDepts = Object.keys(deptSubjectMap).filter(
+    (dept) => deptSubjectMap[dept]?.length > 0,
+  );
+
+  const finalSubjects = Array.from(
+    new Set(Object.values(deptSubjectMap).flat()),
+  );
+
   const canSubmit = useMemo(() => {
     return (
       fullname.trim() &&
       username.trim() &&
       email.trim() &&
-      depts.length > 0 &&
-      subjects.length > 0
+      finalDepts.length > 0 &&
+      finalSubjects.length > 0
     );
-  }, [fullname, username, email, depts, subjects]);
+  }, [fullname, username, email, finalDepts, finalSubjects]);
 
-  const toggle = (arr: string[], value: string) =>
-    arr.includes(value) ? arr.filter((x) => x !== value) : [...arr, value];
+  function toggleSubjectForSelectedDept(subject: string) {
+    if (!selectedDept) return;
 
-  const onCreateTeacher = async () => {
+    const currentSubjects = deptSubjectMap[selectedDept] ?? [];
+
+    const nextSubjects = currentSubjects.includes(subject)
+      ? currentSubjects.filter((s) => s !== subject)
+      : [...currentSubjects, subject];
+
+    setDeptSubjectMap((prev) => ({
+      ...prev,
+      [selectedDept]: nextSubjects,
+    }));
+  }
+
+  function toggleAllSubjectsForSelectedDept() {
+    if (!selectedDept) return;
+
+    setDeptSubjectMap((prev) => ({
+      ...prev,
+      [selectedDept]: allSelectedForCurrentDept ? [] : [...subjectOptions],
+    }));
+  }
+
+  function removeDeptAssignment(dept: string) {
+    setDeptSubjectMap((prev) => {
+      const copy = { ...prev };
+      delete copy[dept];
+      return copy;
+    });
+
+    if (selectedDept === dept) {
+      setSelectedDept("");
+    }
+  }
+
+  async function onCreateTeacher() {
     if (!canSubmit) {
       Alert.alert(
         "Missing Details",
-        "Fill all fields + select depts and subjects.",
+        "Fill all fields and assign at least one department with subjects.",
       );
       return;
     }
@@ -113,8 +169,8 @@ export default function AddTeacherScreen() {
       await completeTeacher({
         clerkId: data.clerkId,
         phone: phone.trim() || undefined,
-        depts,
-        subjects,
+        depts: finalDepts,
+        subjects: finalSubjects,
       });
 
       setCreatedClerkId(data.clerkId);
@@ -130,7 +186,7 @@ export default function AddTeacherScreen() {
     } finally {
       setCreating(false);
     }
-  };
+  }
 
   return (
     <KeyboardAvoidingView
@@ -144,9 +200,9 @@ export default function AddTeacherScreen() {
         showsVerticalScrollIndicator={false}
       >
         <Card>
-          <Text style={styles.title}>ADD-TEACHER</Text>
+          <Text style={styles.title}>ADD TEACHER</Text>
           <Text style={styles.sub}>
-            Admin-only. Creates teacher account with temp password.
+            Admin-only. Create teacher and assign department-wise subjects.
           </Text>
 
           <Label>Full Name</Label>
@@ -156,7 +212,7 @@ export default function AddTeacherScreen() {
             placeholder="Teacher name"
           />
 
-          <Label>Username (auto-suggest later)</Label>
+          <Label>Username</Label>
           <AppInput
             value={username}
             onChangeText={setUsername}
@@ -181,29 +237,90 @@ export default function AddTeacherScreen() {
             keyboardType="phone-pad"
           />
 
-          <Label>Departments (multi)</Label>
+          <Label>Select Department</Label>
           <View style={styles.chipWrap}>
-            {DEPT_OPTIONS.map((d) => (
+            {DEPARTMENTS.map((dept) => (
               <Chip
-                key={d}
-                text={d}
-                active={depts.includes(d)}
-                onPress={() => setDepts(toggle(depts, d))}
+                key={dept}
+                text={dept}
+                active={selectedDept === dept}
+                onPress={() => setSelectedDept(dept)}
               />
             ))}
           </View>
 
-          <Label>Subjects (multi)</Label>
-          <View style={styles.chipWrap}>
-            {SUBJECT_OPTIONS.map((s) => (
-              <Chip
-                key={s}
-                text={s}
-                active={subjects.includes(s)}
-                onPress={() => setSubjects(toggle(subjects, s))}
-              />
-            ))}
-          </View>
+          <Label>Subjects for Selected Department</Label>
+          {!selectedDept ? (
+            <View style={styles.emptyBox}>
+              <Text style={styles.emptyText}>
+                First select a department to load subjects.
+              </Text>
+            </View>
+          ) : (
+            <>
+              <Text style={styles.selectedDeptText}>
+                Current Department: {selectedDept}
+              </Text>
+
+              <Pressable
+                onPress={toggleAllSubjectsForSelectedDept}
+                style={[
+                  styles.allChip,
+                  allSelectedForCurrentDept && styles.allChipActive,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.allChipText,
+                    allSelectedForCurrentDept && styles.allChipTextActive,
+                  ]}
+                >
+                  {allSelectedForCurrentDept ? "Unselect ALL" : "Select ALL"}
+                </Text>
+              </Pressable>
+
+              <View style={styles.chipWrap}>
+                {subjectOptions.map((subject) => (
+                  <Chip
+                    key={subject}
+                    text={subject}
+                    active={selectedSubjectsForCurrentDept.includes(subject)}
+                    onPress={() => toggleSubjectForSelectedDept(subject)}
+                  />
+                ))}
+              </View>
+            </>
+          )}
+
+          <Label>Assigned Department-Subject Mapping</Label>
+          {finalDepts.length === 0 ? (
+            <View style={styles.emptyBox}>
+              <Text style={styles.emptyText}>
+                No department assignments added yet.
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.assignmentWrap}>
+              {finalDepts.map((dept) => (
+                <View key={dept} style={styles.assignmentCard}>
+                  <View style={styles.assignmentHeader}>
+                    <Text style={styles.assignmentDept}>{dept}</Text>
+
+                    <Pressable
+                      onPress={() => removeDeptAssignment(dept)}
+                      style={styles.removeBtn}
+                    >
+                      <Text style={styles.removeBtnText}>Remove</Text>
+                    </Pressable>
+                  </View>
+
+                  <Text style={styles.assignmentSubjects}>
+                    {(deptSubjectMap[dept] ?? []).join(", ")}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )}
 
           <PrimaryButton
             title={creating ? "Creating..." : "Create Teacher"}
@@ -212,15 +329,15 @@ export default function AddTeacherScreen() {
           />
 
           {creating && (
-            <View style={{ marginTop: 10 }}>
+            <View style={styles.loaderSmall}>
               <ActivityIndicator />
             </View>
           )}
 
           <Text style={styles.note}>
-            Temp Password:{" "}
-            <Text style={{ fontWeight: "900" }}>{TEMP_PASSWORD}</Text>
-            {"\n"}Teacher must verify email on first login.
+            Temp Password: <Text style={styles.noteBold}>{TEMP_PASSWORD}</Text>
+            {"\n"}
+            Teacher must verify email on first login.
           </Text>
 
           {createdClerkId && (
@@ -266,6 +383,12 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 40,
   },
+  loader: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLORS.bg,
+  },
 
   title: {
     fontSize: 20,
@@ -296,9 +419,106 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     backgroundColor: "rgba(255,255,255,0.55)",
   },
-  chipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  chipText: { fontSize: 11, fontWeight: "900", color: "#111827" },
-  chipTextActive: { color: "#fff" },
+  chipActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  chipText: {
+    fontSize: 11,
+    fontWeight: "900",
+    color: "#111827",
+  },
+  chipTextActive: {
+    color: "#fff",
+  },
+
+  allChip: {
+    alignSelf: "flex-start",
+    marginBottom: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+    backgroundColor: "#EEF2FF",
+  },
+  allChipActive: {
+    backgroundColor: COLORS.primary,
+  },
+  allChipText: {
+    fontSize: 12,
+    fontWeight: "900",
+    color: COLORS.primary,
+  },
+  allChipTextActive: {
+    color: "#fff",
+  },
+
+  selectedDeptText: {
+    fontSize: 13,
+    fontWeight: "900",
+    color: COLORS.textDark,
+    marginBottom: 10,
+  },
+
+  emptyBox: {
+    backgroundColor: "rgba(255,255,255,0.55)",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 12,
+    marginBottom: 12,
+  },
+  emptyText: {
+    color: COLORS.text,
+    fontSize: 13,
+    fontWeight: "700",
+  },
+
+  assignmentWrap: {
+    gap: 10,
+    marginBottom: 14,
+  },
+  assignmentCard: {
+    backgroundColor: "rgba(255,255,255,0.55)",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 12,
+  },
+  assignmentHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  assignmentDept: {
+    fontSize: 14,
+    fontWeight: "900",
+    color: COLORS.textDark,
+  },
+  assignmentSubjects: {
+    marginTop: 8,
+    fontSize: 12,
+    color: "#334155",
+    fontWeight: "700",
+    lineHeight: 18,
+  },
+
+  removeBtn: {
+    backgroundColor: "#FEE2E2",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  removeBtnText: {
+    color: "#991B1B",
+    fontSize: 11,
+    fontWeight: "900",
+  },
+
+  loaderSmall: {
+    marginTop: 10,
+  },
 
   note: {
     marginTop: 12,
@@ -306,6 +526,9 @@ const styles = StyleSheet.create({
     color: "#334155",
     fontWeight: "700",
     textAlign: "center",
+  },
+  noteBold: {
+    fontWeight: "900",
   },
   note2: {
     marginTop: 6,

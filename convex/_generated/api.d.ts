@@ -11,8 +11,13 @@
 import type * as admin from "../admin.js";
 import type * as adminTeachers from "../adminTeachers.js";
 import type * as applications from "../applications.js";
+import type * as attendance from "../attendance.js";
+import type * as exams from "../exams.js";
 import type * as http from "../http.js";
+import type * as internalPush from "../internalPush.js";
 import type * as notices from "../notices.js";
+import type * as pushNotifications from "../pushNotifications.js";
+import type * as pushTokens from "../pushTokens.js";
 import type * as users from "../users.js";
 
 import type {
@@ -25,8 +30,13 @@ declare const fullApi: ApiFromModules<{
   admin: typeof admin;
   adminTeachers: typeof adminTeachers;
   applications: typeof applications;
+  attendance: typeof attendance;
+  exams: typeof exams;
   http: typeof http;
+  internalPush: typeof internalPush;
   notices: typeof notices;
+  pushNotifications: typeof pushNotifications;
+  pushTokens: typeof pushTokens;
   users: typeof users;
 }>;
 
