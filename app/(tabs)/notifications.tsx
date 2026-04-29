@@ -1,11 +1,20 @@
+/**
+ * Description:
+ * This screen displays department notices and notifications
+ * for the logged-in student. It also allows opening
+ * attached files or links from each notice.
+ */
+
 import { Card, Screen } from "@/components/ui";
 import { api } from "@/convex/_generated/api";
+import { useTabTheme } from "@/provider/TabThemeProvider";
 import { COLORS } from "@/styles/theme";
 import { useAuth } from "@clerk/clerk-expo";
 import { useQuery } from "convex/react";
 import React from "react";
 import {
   ActivityIndicator,
+  Alert,
   Linking,
   StyleSheet,
   Text,
@@ -13,8 +22,8 @@ import {
 } from "react-native";
 
 export default function NotificationsScreen() {
+  const { theme } = useTabTheme();
   const { isLoaded, isSignedIn } = useAuth();
-
   const notices = useQuery(
     api.notices.listMyDeptNotices,
     isLoaded && isSignedIn ? {} : "skip",
@@ -24,40 +33,73 @@ export default function NotificationsScreen() {
     return (
       <Screen>
         <View style={styles.loader}>
-          <ActivityIndicator />
+          <ActivityIndicator color={COLORS.primary} />
         </View>
       </Screen>
     );
   }
 
   return (
-    <Screen scroll contentStyle={{ padding: 16, paddingBottom: 40 }}>
+    <Screen scroll contentStyle={styles.content}>
       <Card>
-        <Text style={styles.title}>Notifications</Text>
-        <Text style={styles.sub}>Department notices for you</Text>
+        <Text style={[styles.title, { color: theme.textPrimary }]}>
+          Announcement
+        </Text>
+        <Text style={[styles.sub, { color: theme.textSecondary }]}>
+          Department announcements for you
+        </Text>
 
         {notices.length === 0 ? (
-          <Text style={styles.emptyText}>No notices found.</Text>
+          <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
+            No notices found.
+          </Text>
         ) : (
-          <View style={{ gap: 10, marginTop: 10 }}>
+          <View style={styles.noticeList}>
             {notices.map((notice: any) => (
-              <View key={notice._id} style={styles.noticeCard}>
-                <Text style={styles.noticeTitle}>{notice.title}</Text>
-                <Text style={styles.noticeMeta}>
-                  {notice.dept} • {notice.createdByName}
+              <View
+                key={notice._id}
+                style={[
+                  styles.noticeCard,
+                  {
+                    backgroundColor: theme.surface,
+                    borderColor: theme.surfaceBorder,
+                  },
+                ]}
+              >
+                <Text style={[styles.noticeTitle, { color: theme.textPrimary }]}>
+                  {notice.title}
                 </Text>
-                <Text style={styles.noticeBody}>{notice.body}</Text>
-                <Text style={styles.noticeDate}>
+
+                <Text style={[styles.noticeMeta, { color: theme.textMuted }]}>
+                  {notice.dept} | {notice.createdByName}
+                </Text>
+
+                <Text style={[styles.noticeBody, { color: theme.surfaceText }]}>
+                  {notice.body}
+                </Text>
+
+                <Text style={[styles.noticeDate, { color: theme.textMuted }]}>
                   {new Date(notice.createdAt).toLocaleString()}
                 </Text>
 
                 {!!notice.attachments?.length && (
-                  <View style={{ marginTop: 8, gap: 6 }}>
+                  <View style={styles.attachmentList}>
                     {notice.attachments.map((url: string, idx: number) => (
                       <Text
                         key={idx}
-                        style={styles.link}
-                        onPress={() => Linking.openURL(url)}
+                        style={[styles.link, { color: theme.link }]}
+                        onPress={async () => {
+                          const supported = await Linking.canOpenURL(url);
+
+                          if (supported) {
+                            await Linking.openURL(url);
+                          } else {
+                            Alert.alert(
+                              "Invalid link",
+                              "Unable to open this attachment.",
+                            );
+                          }
+                        }}
                       >
                         Open Attachment {idx + 1}
                       </Text>
@@ -79,56 +121,58 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  content: {
+    padding: 16,
+    paddingBottom: 40,
+  },
   title: {
     fontSize: 20,
     fontWeight: "900",
-    color: COLORS.textDark,
     textAlign: "center",
   },
   sub: {
     marginTop: 4,
     marginBottom: 12,
     fontSize: 13,
-    color: COLORS.text,
     textAlign: "center",
     opacity: 0.85,
   },
   emptyText: {
     textAlign: "center",
-    color: COLORS.text,
     fontWeight: "700",
+  },
+  noticeList: {
+    gap: 10,
+    marginTop: 10,
   },
   noticeCard: {
     padding: 12,
     borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.55)",
     borderWidth: 1,
-    borderColor: COLORS.border,
   },
   noticeTitle: {
     fontSize: 14,
     fontWeight: "900",
-    color: COLORS.textDark,
   },
   noticeMeta: {
     marginTop: 4,
     fontSize: 12,
     fontWeight: "700",
-    color: "#334155",
   },
   noticeBody: {
     marginTop: 6,
     fontSize: 13,
-    color: "#111827",
   },
   noticeDate: {
     marginTop: 8,
     fontSize: 11,
-    color: "#64748B",
     fontWeight: "700",
   },
+  attachmentList: {
+    marginTop: 8,
+    gap: 6,
+  },
   link: {
-    color: COLORS.link,
     fontWeight: "800",
     textDecorationLine: "underline",
   },

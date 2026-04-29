@@ -1,4 +1,5 @@
 import { COLORS } from "@/styles/theme";
+import { useTabTheme } from "@/provider/TabThemeProvider";
 import React from "react";
 import {
   ScrollView,
@@ -14,15 +15,19 @@ export function Screen({
   children,
   scroll = false,
   contentStyle,
+  style,
 }: {
   children: React.ReactNode;
   scroll?: boolean;
   contentStyle?: ViewStyle;
+  style?: ViewStyle;
 }) {
+  const { theme } = useTabTheme();
+
   if (scroll) {
     return (
       <ScrollView
-        style={styles.screen}
+        style={[styles.screen, { backgroundColor: theme.screenBg }, style]}
         contentContainerStyle={[styles.screenContent, contentStyle]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
@@ -33,26 +38,54 @@ export function Screen({
   }
 
   return (
-    <View style={[styles.screen, styles.screenContent, contentStyle]}>
+    <View
+      style={[
+        styles.screen,
+        { backgroundColor: theme.screenBg },
+        style,
+        styles.screenContent,
+        contentStyle,
+      ]}
+    >
       {children}
     </View>
   );
 }
 
-export function Card({ children }: { children: React.ReactNode }) {
-  return <View style={styles.card}>{children}</View>;
+export function Card({
+  children,
+  style,
+}: {
+  children: React.ReactNode;
+  style?: ViewStyle;
+}) {
+  const { theme } = useTabTheme();
+
+  return <View style={[styles.card, { backgroundColor: theme.cardBg }, style]}>{children}</View>;
 }
 
 export function Label({ children }: { children: React.ReactNode }) {
-  return <Text style={styles.label}>{children}</Text>;
+  const { theme } = useTabTheme();
+
+  return <Text style={[styles.label, { color: theme.textPrimary }]}>{children}</Text>;
 }
 
 export function AppInput(props: React.ComponentProps<typeof TextInput>) {
+  const { theme } = useTabTheme();
+
   return (
     <TextInput
       {...props}
-      style={[styles.input, props.style]}
-      placeholderTextColor="#6B7280"
+      style={[
+        styles.input,
+        {
+          backgroundColor: theme.surfaceStrong,
+          borderColor: theme.surfaceBorder,
+          color: theme.surfaceText,
+        },
+        props.style,
+      ]}
+      placeholderTextColor={theme.textMuted}
     />
   );
 }
@@ -66,12 +99,18 @@ export function PrimaryButton({
   onPress: () => void;
   disabled?: boolean;
 }) {
+  const { theme } = useTabTheme();
+
   return (
     <TouchableOpacity
       activeOpacity={0.85}
       onPress={onPress}
       disabled={disabled}
-      style={[styles.btn, disabled && { opacity: 0.6 }]}
+      style={[
+        styles.btn,
+        { backgroundColor: theme.tabBarActive },
+        disabled && { opacity: 0.6 },
+      ]}
     >
       <Text style={styles.btnText}>{title}</Text>
     </TouchableOpacity>

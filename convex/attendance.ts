@@ -1,14 +1,34 @@
 // convex/attendance.ts
+/**
+ * Description:
+ * This backend file handles attendance management.
+ * It includes authentication, access validation,
+ * attendance marking, report generation, and
+ * student attendance summary.
+ */
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 import { mutation, MutationCtx, query, QueryCtx } from "./_generated/server";
+// ================================
+// AUTHENTICATION HELPER
+// ================================
 
+/**
+ * Checks whether user is authenticated
+ */
 async function requireIdentity(ctx: QueryCtx | MutationCtx) {
   const identity = await ctx.auth.getUserIdentity();
   if (!identity) throw new Error("Not authenticated");
   return identity;
 }
 
+// ================================
+// FETCH CURRENT USER
+// ================================
+
+/**
+ * Returns current logged-in user
+ */
 async function getCurrentUser(ctx: QueryCtx | MutationCtx) {
   const identity = await requireIdentity(ctx);
 
@@ -22,6 +42,13 @@ async function getCurrentUser(ctx: QueryCtx | MutationCtx) {
   return user;
 }
 
+// ================================
+// ROLE VALIDATION
+// ================================
+
+/**
+ * Allows only teacher and admin access
+ */
 async function requireTeacherOrAdmin(ctx: QueryCtx | MutationCtx) {
   const user = await getCurrentUser(ctx);
 
@@ -32,6 +59,13 @@ async function requireTeacherOrAdmin(ctx: QueryCtx | MutationCtx) {
   return user;
 }
 
+// ================================
+// FETCH TEACHER PROFILE
+// ================================
+
+/**
+ * Returns teacher profile
+ */
 async function getTeacherProfileOrNull(
   ctx: QueryCtx | MutationCtx,
   userId: Id<"users">,
@@ -42,10 +76,24 @@ async function getTeacherProfileOrNull(
     .first();
 }
 
+// ================================
+// TEXT NORMALIZATION
+// ================================
+
+/**
+ * Standardizes text for comparison
+ */
 function normalizeText(value: string) {
   return value.trim().toLowerCase();
 }
 
+// ================================
+// ATTENDANCE ACCESS VALIDATION
+// ================================
+
+/**
+ * Checks department and subject access
+ */
 async function validateAttendanceAccess(
   ctx: QueryCtx | MutationCtx,
   actor: {
@@ -81,6 +129,13 @@ async function validateAttendanceAccess(
   }
 }
 
+// ================================
+// GET CLASS STUDENTS
+// ================================
+
+/**
+ * Returns all students of selected class
+ */
 // Get students of a class for attendance marking
 export const getClassStudents = query({
   args: {
@@ -121,6 +176,10 @@ export const getClassStudents = query({
       .sort((a, b) => a.rollno.localeCompare(b.rollno));
   },
 });
+
+// ================================
+// GET ATTENDANCE SHEET
+// ================================
 
 // Get existing attendance sheet for one date/class/subject
 export const getAttendanceSheet = query({
@@ -186,6 +245,10 @@ export const getAttendanceSheet = query({
     };
   },
 });
+
+// ================================
+// SAVE ATTENDANCE
+// ================================
 
 // Create/update attendance for one session
 export const saveAttendance = mutation({
@@ -284,6 +347,10 @@ export const saveAttendance = mutation({
   },
 });
 
+// ================================
+// STUDENT ATTENDANCE SUMMARY
+// ================================
+
 // Student attendance summary
 export const getMyAttendanceSummary = query({
   args: {},
@@ -370,6 +437,10 @@ export const getMyAttendanceSummary = query({
     };
   },
 });
+
+// ================================
+// ATTENDANCE REPORT
+// ================================
 
 // Admin/Teacher report view
 export const getAttendanceReport = query({

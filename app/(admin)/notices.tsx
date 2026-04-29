@@ -94,9 +94,9 @@ export default function NoticesScreen() {
   return (
     <Screen scroll contentStyle={{ padding: 16, paddingBottom: 40 }}>
       <Card>
-        <Text style={styles.title}>Post Notice</Text>
+        <Text style={styles.title}>Post Announcement</Text>
         <Text style={styles.sub}>
-          Teacher and admin can post department-wise notices.
+          Teacher and admin can post department-wise Announcement.
         </Text>
 
         <Label>Title</Label>

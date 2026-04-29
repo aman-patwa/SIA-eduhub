@@ -1,23 +1,51 @@
+/**
+ * File Name: _layout.tsx
+ * Project: SIA EduHub
+ * Author: AMAN PATWA
+ * Description:
+ * This file defines the bottom tab navigation layout
+ * for student users. It controls the tab bar design,
+ * icons, hidden screens, and navigation flow between tabs.
+ */
+
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import React from "react";
+import { TabThemeProvider, useTabTheme } from "@/provider/TabThemeProvider";
 
+/**
+ * TabLayout Component
+ * Creates bottom tab navigation for the student dashboard.
+ */
 export default function TabLayout() {
+  return (
+    <TabThemeProvider>
+      <StudentTabs />
+    </TabThemeProvider>
+  );
+}
+
+function StudentTabs() {
+  const { theme } = useTabTheme();
+
   return (
     <Tabs
       screenOptions={{
-        headerShown: false,
-        tabBarShowLabel: false,
+        headerShown: false, // Hides default top header
+        tabBarShowLabel: false, // Hides tab text labels
+        tabBarActiveTintColor: theme.tabBarActive,
+        tabBarInactiveTintColor: theme.tabBarInactive,
         tabBarStyle: {
-          backgroundColor: "#fff",
-          borderTopWidth: 0,
-          elevation: 0,
-          height: 50,
-          position: "absolute",
-          paddingBottom: 8,
+          backgroundColor: theme.tabBarBg, // Theme background
+          borderTopWidth: 0, // Removes top border line
+          elevation: 0, // Removes shadow (Android)
+          height: 50, // Tab bar height
+          position: "absolute", // Keeps it floating at bottom
+          paddingBottom: 8, // Bottom spacing
         },
       }}
     >
+      {/* Home Screen Tab */}
       <Tabs.Screen
         name="index"
         options={{
@@ -27,6 +55,8 @@ export default function TabLayout() {
           ),
         }}
       />
+
+      {/* Applications Screen Tab */}
       <Tabs.Screen
         name="Applications"
         options={{
@@ -35,6 +65,8 @@ export default function TabLayout() {
           ),
         }}
       />
+
+      {/* Notifications Screen Tab */}
       <Tabs.Screen
         name="notifications"
         options={{
@@ -43,6 +75,8 @@ export default function TabLayout() {
           ),
         }}
       />
+
+      {/* Exam Details Screen Tab */}
       <Tabs.Screen
         name="exam_details"
         options={{
@@ -51,6 +85,8 @@ export default function TabLayout() {
           ),
         }}
       />
+
+      {/* Profile Screen Tab */}
       <Tabs.Screen
         name="profile"
         options={{
@@ -59,10 +95,12 @@ export default function TabLayout() {
           ),
         }}
       />
+
+      {/* Hidden Attendance Screen (not shown in tab bar) */}
       <Tabs.Screen
         name="attendance"
         options={{
-          href: null,
+          href: null, // Removes it from visible tab navigation
         }}
       />
     </Tabs>

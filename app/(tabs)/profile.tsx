@@ -1,17 +1,23 @@
+/**
+ * Description:
+ * This screen displays and updates the student's profile.
+ * It allows editing personal details such as phone number,
+ * parent details, address, and date of birth.
+ * It also provides sign-out functionality.
+ */
+
 import { AppInput, Card, Label, PrimaryButton, Screen } from "@/components/ui";
 import { api } from "@/convex/_generated/api";
+import { useTabTheme } from "@/provider/TabThemeProvider";
 import { COLORS } from "@/styles/theme";
 import { useClerk } from "@clerk/clerk-expo";
-import DateTimePicker, {
-  DateTimePickerEvent,
-} from "@react-native-community/datetimepicker";
 import { useMutation, useQuery } from "convex/react";
-import { useRouter } from "expo-router";
+import { Redirect, useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Image,
+  KeyboardAvoidingView,
   Platform,
   Pressable,
   StyleSheet,
@@ -19,10 +25,14 @@ import {
   View,
 } from "react-native";
 
+/**
+ * Profile Screen Component
+ * Shows student details and edit form.
+ */
 export default function ProfileScreen() {
   const router = useRouter();
   const { signOut } = useClerk();
-
+  const { theme } = useTabTheme();
   const me = useQuery(api.users.getMe);
   const updateStudentProfile = useMutation(api.users.updateStudentProfile);
 
@@ -34,9 +44,6 @@ export default function ProfileScreen() {
   const [documents, setDocuments] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const [showDobPicker, setShowDobPicker] = useState(false);
-  const [dobDate, setDobDate] = useState(new Date(2005, 0, 1));
-
   useEffect(() => {
     if (!me) return;
 
@@ -46,59 +53,9 @@ export default function ProfileScreen() {
     setAddress(me.studentProfile?.address ?? "");
     setDob(me.studentProfile?.dob ?? "");
     setDocuments((me.studentProfile?.documents ?? []).join(", "));
-
-    const parsed = parseDobString(me.studentProfile?.dob);
-    if (parsed) setDobDate(parsed);
   }, [me]);
 
   const canSave = useMemo(() => !!me, [me]);
-
-  function formatDate(date: Date) {
-    const day = String(date.getDate()).padStart(2, "0");
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const year = date.getFullYear();
-    return `${day}/${month}/${year}`;
-  }
-
-  function parseDobString(value?: string) {
-    if (!value) return null;
-    const parts = value.split("/");
-    if (parts.length !== 3) return null;
-
-    const day = Number(parts[0]);
-    const month = Number(parts[1]) - 1;
-    const year = Number(parts[2]);
-
-    if (
-      Number.isNaN(day) ||
-      Number.isNaN(month) ||
-      Number.isNaN(year) ||
-      day < 1 ||
-      day > 31 ||
-      month < 0 ||
-      month > 11 ||
-      year < 1900
-    ) {
-      return null;
-    }
-
-    const parsed = new Date(year, month, day);
-    if (Number.isNaN(parsed.getTime())) return null;
-
-    return parsed;
-  }
-
-  const handleDobChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
-    if (Platform.OS === "android") {
-      setShowDobPicker(false);
-    }
-
-    if (event.type === "dismissed") return;
-    if (!selectedDate) return;
-
-    setDobDate(selectedDate);
-    setDob(formatDate(selectedDate));
-  };
 
   const handleSave = async () => {
     try {
@@ -106,7 +63,7 @@ export default function ProfileScreen() {
 
       const docsArray = documents
         .split(",")
-        .map((d) => d.trim())
+        .map((item) => item.trim())
         .filter(Boolean);
 
       await updateStudentProfile({
@@ -114,7 +71,7 @@ export default function ProfileScreen() {
         parentName: parentName.trim() || undefined,
         parentPhone: parentPhone.trim() || undefined,
         address: address.trim() || undefined,
-        dob: dob || undefined,
+        dob: dob.trim() || undefined,
         documents: docsArray,
       });
 
@@ -127,173 +84,191 @@ export default function ProfileScreen() {
   };
 
   const handleSignOut = async () => {
-    await signOut();
-    router.replace("/(auth)/login");
+    try {
+      await signOut();
+      router.replace("/(auth)/login");
+    } catch {
+      Alert.alert("Error", "Could not sign out.");
+    }
   };
 
   if (me === undefined) {
     return (
-      <View style={styles.loader}>
-        <ActivityIndicator />
+      <View style={[styles.loader, { backgroundColor: theme.screenBg }]}>
+        <ActivityIndicator color={COLORS.primary} />
       </View>
     );
   }
 
-  if (me === null) {
-    return (
-      <Screen>
-        <Card>
-          <Text style={styles.title}>Profile</Text>
-          <Text style={styles.sub}>No user found.</Text>
-        </Card>
-      </Screen>
-    );
-  }
+  if (!me) return <Redirect href="/(auth)/login" />;
+
+  if (me.role !== "student") return <Redirect href="/(admin)" />;
 
   return (
-    <Screen scroll contentStyle={{ padding: 16, paddingBottom: 40 }}>
-      <Card>
-        <View style={styles.header}>
-          {me.image ? (
-            <Image source={{ uri: me.image }} style={styles.avatar} />
-          ) : (
-            <View style={styles.avatarFallback}>
-              <Text style={styles.avatarFallbackText}>
-                {(me.fullname?.[0] || me.username?.[0] || "S").toUpperCase()}
+    <KeyboardAvoidingView
+      style={styles.screen}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 24 : 0}
+    >
+      <Screen scroll contentStyle={styles.content}>
+        <Text style={[styles.header, { color: theme.textPrimary }]}>
+          My Profile
+        </Text>
+
+        <Card>
+          <View style={styles.headerBlock}>
+            <View
+              style={[
+                styles.avatarFallback,
+                { backgroundColor: theme.surfaceStrong },
+              ]}
+            >
+              <Text
+                style={[styles.avatarFallbackText, { color: theme.textPrimary }]}
+              >
+                {(me.fullname || "S").charAt(0).toUpperCase()}
               </Text>
             </View>
-          )}
+            <Text style={[styles.title, { color: theme.textPrimary }]}>
+              {me.fullname || "Student"}
+            </Text>
+            <Text style={[styles.sub, { color: theme.textSecondary }]}>
+              {me.email}
+            </Text>
+          </View>
 
-          <Text style={styles.title}>{me.fullname || "Student"}</Text>
-          <Text style={styles.sub}>
-            @{me.username} • {me.role?.toUpperCase()}
+          <Info
+            label="Department"
+            value={me.studentProfile?.dept || "Not available"}
+          />
+          <Info
+            label="Class"
+            value={me.studentProfile?.class || "Not available"}
+          />
+          <Info
+            label="Roll Number"
+            value={me.studentProfile?.rollno || "Not available"}
+          />
+        </Card>
+
+        <Card>
+          <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>
+            Update Details
           </Text>
-        </View>
 
-        <Info label="Email" value={me.email} />
-        <Info label="Class" value={me.studentProfile?.class || "—"} />
-        <Info label="Department" value={me.studentProfile?.dept || "—"} />
-        <Info label="Roll No" value={me.studentProfile?.rollno || "—"} />
+          <Label>Mobile Number</Label>
+          <AppInput
+            value={phone}
+            onChangeText={setPhone}
+            placeholder="e.g. 9876543210"
+            keyboardType="phone-pad"
+          />
 
-        <View style={{ height: 8 }} />
+          <Label>Parent Name</Label>
+          <AppInput
+            value={parentName}
+            onChangeText={setParentName}
+            placeholder="Parent or guardian name"
+          />
 
-        <Label>Phone Number</Label>
-        <AppInput
-          value={phone}
-          onChangeText={setPhone}
-          placeholder="Enter your phone number"
-          keyboardType="phone-pad"
-        />
+          <Label>Parent Phone</Label>
+          <AppInput
+            value={parentPhone}
+            onChangeText={setParentPhone}
+            placeholder="Parent contact number"
+            keyboardType="phone-pad"
+          />
 
-        <Label>Parent Name</Label>
-        <AppInput
-          value={parentName}
-          onChangeText={setParentName}
-          placeholder="Enter parent name"
-        />
+          <Label>Address</Label>
+          <AppInput
+            value={address}
+            onChangeText={setAddress}
+            placeholder="Current address"
+            multiline
+            style={styles.multilineInput}
+          />
 
-        <Label>Parent Phone Number</Label>
-        <AppInput
-          value={parentPhone}
-          onChangeText={setParentPhone}
-          placeholder="Enter parent phone number"
-          keyboardType="phone-pad"
-        />
+          <Label>Date of Birth</Label>
+          <AppInput
+            value={dob}
+            onChangeText={setDob}
+            placeholder="dd/mm/yyyy"
+          />
 
-        <Label>Address</Label>
-        <AppInput
-          value={address}
-          onChangeText={setAddress}
-          placeholder="Enter address"
-        />
+          <Label>Documents</Label>
+          <AppInput
+            value={documents}
+            onChangeText={setDocuments}
+            placeholder="Comma separated documents"
+            multiline
+            style={styles.multilineInput}
+          />
 
-        <Label>Date of Birth</Label>
+          <PrimaryButton
+            title={saving ? "Saving..." : "Save Changes"}
+            onPress={handleSave}
+            disabled={!canSave || saving}
+          />
+        </Card>
+
         <Pressable
-          onPress={() => setShowDobPicker(true)}
+          onPress={handleSignOut}
           style={({ pressed }) => [
-            styles.dateField,
-            pressed && { opacity: 0.9 },
+            styles.signOutBtn,
+            pressed && { opacity: 0.85 },
           ]}
         >
-          <Text style={[styles.dateText, !dob && styles.datePlaceholder]}>
-            {dob || "Select date of birth"}
-          </Text>
+          <Text style={styles.signOutText}>Sign Out</Text>
         </Pressable>
-
-        {showDobPicker && Platform.OS === "ios" && (
-          <View style={styles.iosPickerBox}>
-            <View style={styles.iosPickerHeader}>
-              <Text style={styles.iosPickerTitle}>Select Date of Birth</Text>
-              <Pressable onPress={() => setShowDobPicker(false)}>
-                <Text style={styles.iosDone}>Done</Text>
-              </Pressable>
-            </View>
-
-            <DateTimePicker
-              value={dobDate}
-              mode="date"
-              display="spinner"
-              maximumDate={new Date()}
-              onChange={handleDobChange}
-            />
-          </View>
-        )}
-
-        {showDobPicker && Platform.OS === "android" && (
-          <DateTimePicker
-            value={dobDate}
-            mode="date"
-            display="default"
-            maximumDate={new Date()}
-            onChange={handleDobChange}
-          />
-        )}
-
-        {/* <Label>Documents</Label>
-        <AppInput
-          value={documents}
-          onChangeText={setDocuments}
-          placeholder="Enter document URLs or names separated by comma"
-        /> */}
-
-        <PrimaryButton
-          title={saving ? "Saving..." : "Save Changes"}
-          onPress={handleSave}
-          disabled={!canSave || saving}
-        />
-
-        <View style={{ height: 10 }} />
-
-        <PrimaryButton title="Sign out" onPress={handleSignOut} />
-      </Card>
-    </Screen>
+      </Screen>
+    </KeyboardAvoidingView>
   );
 }
 
 function Info({ label, value }: { label: string; value: string }) {
+  const { theme } = useTabTheme();
+
   return (
-    <View style={styles.row}>
-      <Text style={styles.rowLabel}>{label}</Text>
-      <Text style={styles.rowValue}>{value}</Text>
+    <View
+      style={[
+        styles.row,
+        {
+          backgroundColor: theme.surface,
+          borderColor: theme.surfaceBorder,
+        },
+      ]}
+    >
+      <Text style={[styles.rowLabel, { color: theme.textPrimary }]}>{label}</Text>
+      <Text style={[styles.rowValue, { color: theme.surfaceText }]}>{value}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+  },
   loader: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: COLORS.bg,
   },
-
-  header: { alignItems: "center", marginBottom: 14 },
-  avatar: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
-    backgroundColor: COLORS.inputBg,
-    marginBottom: 10,
+  content: {
+    padding: 16,
+    paddingBottom: 40,
+  },
+  header: {
+    width: "100%",
+    maxWidth: 420,
+    fontSize: 22,
+    fontWeight: "900",
+    marginBottom: 12,
+    color: COLORS.textDark,
+  },
+  headerBlock: {
+    alignItems: "center",
+    marginBottom: 14,
   },
   avatarFallback: {
     width: 76,
@@ -309,7 +284,6 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     color: COLORS.textDark,
   },
-
   title: {
     fontSize: 20,
     fontWeight: "900",
@@ -323,13 +297,18 @@ const styles = StyleSheet.create({
     opacity: 0.85,
     textAlign: "center",
   },
-
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "900",
+    color: COLORS.textDark,
+    marginBottom: 12,
+  },
   row: {
-    backgroundColor: "rgba(255,255,255,0.55)",
     borderRadius: 12,
     paddingVertical: 10,
     paddingHorizontal: 12,
     marginBottom: 10,
+    borderWidth: 1,
   },
   rowLabel: {
     fontSize: 12,
@@ -343,52 +322,22 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#111827",
   },
-
-  dateField: {
+  multilineInput: {
+    minHeight: 72,
+    textAlignVertical: "top",
+  },
+  signOutBtn: {
     width: "100%",
-    backgroundColor: "#fff",
+    maxWidth: 420,
+    paddingVertical: 12,
     borderRadius: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 10,
-  },
-  dateText: {
-    fontSize: 14,
-    color: "#111827",
-    fontWeight: "600",
-  },
-  datePlaceholder: {
-    color: "#6B7280",
-    fontWeight: "500",
-  },
-
-  iosPickerBox: {
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 12,
-    overflow: "hidden",
-    backgroundColor: "#fff",
-  },
-  iosPickerHeader: {
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-    flexDirection: "row",
+    backgroundColor: "#ef4444",
     alignItems: "center",
-    justifyContent: "space-between",
+    marginTop: 14,
   },
-  iosPickerTitle: {
-    fontSize: 13,
-    fontWeight: "800",
-    color: COLORS.textDark,
-  },
-  iosDone: {
-    fontSize: 14,
+  signOutText: {
+    color: "#fff",
     fontWeight: "900",
-    color: COLORS.primary,
+    fontSize: 16,
   },
 });

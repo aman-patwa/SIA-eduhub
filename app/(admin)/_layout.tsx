@@ -1,3 +1,15 @@
+/*
+ * Description:
+ * This layout file manages the protected admin navigation
+ * system for the application using tab-based routing.
+ * It verifies user authentication, fetches the logged-in
+ * user's profile, restricts access to admin and teacher
+ * roles only, and redirects unauthorized users.
+ * After successful verification, it displays the admin
+ * dashboard tabs such as applications, notices,
+ * attendance, and profile.
+ */
+
 import { api } from "@/convex/_generated/api";
 import { useAuth } from "@clerk/clerk-expo";
 import { Ionicons } from "@expo/vector-icons";
@@ -7,10 +19,13 @@ import React from "react";
 import { ActivityIndicator, View } from "react-native";
 
 export default function AdminLayout() {
+  // Get authentication status from Clerk
   const { isLoaded, isSignedIn } = useAuth();
 
+  // Fetch the currently logged-in user's data only after auth is ready
   const me = useQuery(api.users.getMe, isLoaded && isSignedIn ? {} : "skip");
 
+  // Show loading indicator while authentication state is being resolved
   if (!isLoaded) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
@@ -19,10 +34,12 @@ export default function AdminLayout() {
     );
   }
 
+  // Redirect unauthenticated users to the login page
   if (!isSignedIn) {
     return <Redirect href="/(auth)/login" />;
   }
 
+  // Wait until user profile data is fetched from Convex
   if (me === undefined) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
@@ -31,10 +48,12 @@ export default function AdminLayout() {
     );
   }
 
+  // Restrict access to only admin and teacher roles
   if (!me || (me.role !== "admin" && me.role !== "teacher")) {
     return <Redirect href="/(tabs)" />;
   }
 
+  // Render admin tab navigation for authorized users
   return (
     <Tabs
       screenOptions={{
@@ -49,6 +68,7 @@ export default function AdminLayout() {
         },
       }}
     >
+      {/* Admin dashboard home screen */}
       <Tabs.Screen
         name="index"
         options={{
@@ -59,6 +79,7 @@ export default function AdminLayout() {
         }}
       />
 
+      {/* Student applications management screen */}
       <Tabs.Screen
         name="applications"
         options={{
@@ -69,6 +90,7 @@ export default function AdminLayout() {
         }}
       />
 
+      {/* Notice and announcements management screen */}
       <Tabs.Screen
         name="notices"
         options={{
@@ -79,6 +101,7 @@ export default function AdminLayout() {
         }}
       />
 
+      {/* Attendance management screen */}
       <Tabs.Screen
         name="attendance"
         options={{
@@ -89,6 +112,7 @@ export default function AdminLayout() {
         }}
       />
 
+      {/* Admin profile screen */}
       <Tabs.Screen
         name="profile"
         options={{
@@ -99,6 +123,7 @@ export default function AdminLayout() {
         }}
       />
 
+      {/* Hidden route for adding teacher accounts */}
       <Tabs.Screen
         name="add-teacher"
         options={{
@@ -106,6 +131,7 @@ export default function AdminLayout() {
         }}
       />
 
+      {/* Hidden route for exam management module */}
       <Tabs.Screen
         name="exam"
         options={{
